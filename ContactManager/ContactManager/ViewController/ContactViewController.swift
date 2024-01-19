@@ -8,17 +8,35 @@
 import UIKit
 
 class ContactViewController: UIViewController {
-    
-    
+   
     private let contactManager = ContactMananger()
     private let cellIdentifier = "ContactCustomCell"
+    var filteredContact: [Contact] = []
+    var isFiltering: Bool {
+        let searchController = contactNavigation.searchController
+        let isActive = searchController?.isActive ?? false
+        let isSearchBarHasText = searchController?.searchBar.text?.isEmpty == false
+        return isActive && isSearchBarHasText
+    }
 
     @IBOutlet weak var contactTableView: UITableView!
+    @IBOutlet weak var contactNavigation: UINavigationItem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         configure()
         loadContactData()
+        setSearchController()
+    }
+    
+    func setSearchController() {
+        let searchController = UISearchController(searchResultsController: nil)
+        contactNavigation.searchController = searchController
+        searchController.searchBar.placeholder = "Name or PhoneNumber"
+        contactNavigation.hidesSearchBarWhenScrolling = false
+        searchController.hidesNavigationBarDuringPresentation = false
+        searchController.automaticallyShowsCancelButton = true
+        searchController.searchResultsUpdater = self
     }
     
     private func configure() {
@@ -41,7 +59,7 @@ class ContactViewController: UIViewController {
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         guard let addedModalView = segue.destination as? AddedContactViewController else {
-           return showAlert(title: "", message: "뷰 생성 실패")
+            return showAlert(title: "", message: "뷰 생성 실패")
         }
         addedModalView.delegate = self
     }
@@ -50,7 +68,7 @@ class ContactViewController: UIViewController {
 extension ContactViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return contactManager.contactCount
+        return self.isFiltering ? filteredContact.count : contactManager.contactCount
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -58,24 +76,41 @@ extension ContactViewController: UITableViewDataSource, UITableViewDelegate {
             return ContactCustomCell()
         }
         
-        let contact = contactManager.fetchContact(index: indexPath.row)
-        
-        switch contact {
-        case .success(let data):
-            customCell.nameLabel.text = data.fetchedName
-            customCell.ageLabel.text = data.fetchedAge
-            customCell.phoneNumberLabel.text = data.fetchedPhoneNumber
-        case .failure(let error):
-            showAlert(title: "알림", message: error.errorMessage)
+        if self.isFiltering {
+            let testContact = filteredContact[indexPath.row]
+            customCell.nameLabel.text = testContact.fetchedName
+            customCell.ageLabel.text = testContact.fetchedAge
+            customCell.phoneNumberLabel.text = testContact.fetchedPhoneNumber
+        } else {
+            let contact = contactManager.fetchContact(index: indexPath.row)
+            switch contact {
+            case .success(let data):
+                customCell.nameLabel.text = data.fetchedName
+                customCell.ageLabel.text = data.fetchedAge
+                customCell.phoneNumberLabel.text = data.fetchedPhoneNumber
+            case .failure(let error):
+                showAlert(title: "알림", message: error.errorMessage)
+            }
         }
         
         return customCell
-        
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         contactManager.deleteContact(index: indexPath.row)
         tableView.deleteRows(at: [indexPath], with: .fade)
+    }
+}
+
+extension ContactViewController: UISearchResultsUpdating {
+    
+    func updateSearchResults(for searchController: UISearchController) {
+        guard let text = searchController.searchBar.text?.lowercased() else { return }
+        filteredContact = self.contactManager.fetchStorage().filter {
+            $0.fetchedName.localizedCaseInsensitiveContains(text) ||
+            $0.fetchedPhoneNumber.localizedCaseInsensitiveContains(text)
+        }
+        contactTableView.reloadData()
     }
 }
 

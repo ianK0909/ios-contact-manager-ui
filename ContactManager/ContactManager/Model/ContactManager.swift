@@ -32,4 +32,8 @@ final class ContactMananger {
     func deleteContact(index: Int) {
         storage.remove(at: index)
     }
+    
+    func fetchStorage() -> [Contact] {
+        return storage
+    }
 }

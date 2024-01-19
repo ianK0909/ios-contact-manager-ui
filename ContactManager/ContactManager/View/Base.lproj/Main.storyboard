@@ -87,6 +87,7 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
+                        <outlet property="contactNavigation" destination="PG6-yD-Y68" id="qXd-5J-ofc"/>
                         <outlet property="contactTableView" destination="waQ-qp-ovq" id="9qn-xs-ZgX"/>
                     </connections>
                 </viewController>
