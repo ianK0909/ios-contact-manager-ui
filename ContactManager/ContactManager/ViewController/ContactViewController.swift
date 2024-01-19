@@ -47,7 +47,7 @@ class ContactViewController: UIViewController {
     }
 }
 
-extension ContactViewController: UITableViewDataSource {
+extension ContactViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return contactManager.contactCount
@@ -70,6 +70,12 @@ extension ContactViewController: UITableViewDataSource {
         }
         
         return customCell
+        
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        contactManager.deleteContact(index: indexPath.row)
+        tableView.deleteRows(at: [indexPath], with: .fade)
     }
 }
 
